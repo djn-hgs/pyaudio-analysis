@@ -1,6 +1,4 @@
 import os
-
-import matplotlib
 import pyaudio
 import wave
 import numpy as np
@@ -10,24 +8,28 @@ import matplotlib.pyplot as plt
 
 # Size of buffer in frames
 
-CHUNK = 4096
+CHUNK = 1024
 
 # Open an audio file for analysis and playback
 
 base_directory = os.getcwd()
-filename = os.path.join(base_directory, 'sweep.wav')
+audio_file = 'Please.wav'
+filename = os.path.join(base_directory, audio_file)
 wf = wave.open(filename, "rb")
 
 # Get meta
 
 rate = wf.getframerate()
 channels = wf.getnchannels()
+sample_width = wf.getsampwidth()
+
+print(sample_width)
 
 # Open a playback handle using PyAudio
 
 p = pyaudio.PyAudio()
 
-audio_format = p.get_format_from_width(wf.getsampwidth())
+audio_format = p.get_format_from_width(sample_width)
 
 stream = p.open(format=audio_format, channels=channels, rate=rate, output=True)
 
@@ -37,16 +39,13 @@ plt.ion()
 
 fig, ax = plt.subplots(nrows=1, ncols=1)
 
-ax.set_title('Audio Example')
+ax.set_title(f'File: {audio_file}, Channels: {channels}, Rate: {rate}')
+ax.set_xlabel('Frequency (Hz)')
+ax.set_ylabel('log(Amplitude)')
 
 # Create a line-plot that we can update later
 
 line, = ax.plot([],[])
-
-# Show it (but we're going to keep updating it)
-
-plt.show()
-
 
 monitoring = True
 
@@ -72,11 +71,12 @@ while monitoring:
 
     # Get amplitudes
 
-    amp = np.abs(yf)
+    amp = np.log(np.abs(yf))
+    max_amp = np.max(amp)
 
     # Get the analysis frequencies
 
-    xf = fft.fftfreq(CHUNK, channels / rate)
+    xf = fft.fftfreq(CHUNK, 1 / rate)
 
     data_range = CHUNK // 2
 
@@ -88,7 +88,7 @@ while monitoring:
     # Amend the axes
 
     ax.set_xlim(0, max(xf))
-    ax.set_ylim(0, max(amp))
+    ax.set_ylim(0, max(1, max_amp))
 
     # Draw them
 
